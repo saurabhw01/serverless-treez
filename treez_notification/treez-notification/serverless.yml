@@ -1,0 +1,82 @@
+service: order-notification
+useDotenv: true
+
+frameworkVersion: "3"
+
+provider:
+  name: aws
+  runtime: python3.9
+  timeout: 200
+  stage: ${opt:stage, 'dev'}
+  region: us-west-2
+
+functions:
+  notify:
+    handler: handler.notify
+    timeout: 200
+    #    The following are a few example events you can configure
+    #    NOTE: Please make sure to change your handler code to work with those events
+    #    Check the event documentation for details
+    events:
+      - httpApi:
+          path: /notify
+          method: post
+
+# Resources:
+#   notify:
+#     Type: AWS::Serverless::Function
+#     Properties:
+#       Handler: handler.notify
+#       Runtime: python3.9
+
+#   MyApi:
+#     Type: AWS::Serverless::Api
+#     Properties:
+#       StageName: dev
+#       DefinitionBody:
+#         swagger: "2.0"
+#         info:
+#           title: "Notify API"
+#         paths:
+#           /notify:
+#             post:
+#               # responses:
+#               #   "200":
+#               #     description: "OK"
+#               x-amazon-apigateway-integration:
+#                 type: aws_proxy
+#                 uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${notify.Arn}/invocations"
+#             authorizationType: NONE
+
+resources:
+  Resources:
+    ApiGatewayRestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Name: MyApiGateway
+
+    ApiGatewayDeployment:
+      Type: AWS::ApiGateway::Deployment
+      Properties:
+        RestApiId:
+          Ref: ApiGatewayRestApi
+
+    ApiGatewayStage:
+      Type: AWS::ApiGateway::Stage
+      Properties:
+        StageName: dev
+        RestApiId:
+          Ref: ApiGatewayRestApi
+        DeploymentId:
+          Ref: ApiGatewayDeployment
+
+plugins:
+  - serverless-python-requirements
+  - serverless-offline
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    usePoetry: true
+  dotenv:
+    path: .env
